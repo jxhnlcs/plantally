@@ -13,12 +13,17 @@ export interface Plant {
     lightLevel?: 'Low' | 'Medium' | 'High' | 'Direct';
     humidity?: number; // percentage
     health?: number; // 0-100
+    status: 'alive' | 'dead';
+    datePlanted: string; // ISO string
+    dateDied?: string; // ISO string
     history: { date: string; value: number }[]; // For charts (e.g. soil moisture or growth)
     image?: string; // Placeholder for now
 }
 
 interface UserState {
     isLoggedIn: boolean;
+    isDemo: boolean;
+    demoStartTime: number | null;
     hasPaid: boolean;
     userEmail: string | null;
     plants: Plant[];
@@ -28,12 +33,16 @@ interface UserState {
     logout: () => void;
     subscribe: () => void;
     addPlant: (plant: Plant) => void;
+    deletePlant: (id: string) => void;
+    markPlantDead: (id: string) => void;
     waterPlant: (id: string) => void;
     generateDemoData: () => void;
 }
 
 export const useAppStore = create<UserState>((set) => ({
     isLoggedIn: false,
+    isDemo: false,
+    demoStartTime: null,
     hasPaid: false,
     userEmail: null,
     plants: [],
@@ -42,6 +51,8 @@ export const useAppStore = create<UserState>((set) => ({
 
     logout: () => set({
         isLoggedIn: false,
+        isDemo: false,
+        demoStartTime: null,
         userEmail: null,
         hasPaid: false,
         plants: []
@@ -51,6 +62,16 @@ export const useAppStore = create<UserState>((set) => ({
 
     addPlant: (plant) => set((state) => ({
         plants: [...state.plants, plant]
+    })),
+
+    deletePlant: (id) => set((state) => ({
+        plants: state.plants.filter(p => p.id !== id)
+    })),
+
+    markPlantDead: (id) => set((state) => ({
+        plants: state.plants.map(p =>
+            p.id === id ? { ...p, status: 'dead', dateDied: new Date().toISOString(), health: 0 } : p
+        )
     })),
 
     waterPlant: (id) => set((state) => ({
@@ -73,6 +94,8 @@ export const useAppStore = create<UserState>((set) => ({
     generateDemoData: () => set({
         isLoggedIn: true,
         hasPaid: true,
+        isDemo: true, // Set isDemo to true for demo data
+        demoStartTime: Date.now(),
         userEmail: 'demo@plantally.com',
         plants: [
             {
@@ -80,6 +103,8 @@ export const useAppStore = create<UserState>((set) => ({
                 name: 'Monstera',
                 scientificName: 'Monstera Deliciosa',
                 location: 'Sala de Estar',
+                status: 'alive',
+                datePlanted: '2023-12-15',
                 waterFrequencyDays: 7,
                 lastWatered: new Date(Date.now() - 2 * 86400000).toISOString(),
                 nextWatering: new Date(Date.now() + 5 * 86400000).toISOString(),
@@ -93,42 +118,8 @@ export const useAppStore = create<UserState>((set) => ({
                     { date: '2024-01-22', value: 90 },
                     { date: '2024-01-29', value: 50 },
                 ]
-            },
-            {
-                id: '2',
-                name: 'Jiboia',
-                scientificName: 'Epipremnum aureum',
-                location: 'Escritório',
-                waterFrequencyDays: 4,
-                lastWatered: new Date(Date.now() - 5 * 86400000).toISOString(),
-                nextWatering: new Date(Date.now() - 1 * 86400000).toISOString(), // Overdue
-                lightLevel: 'Low',
-                humidity: 45,
-                health: 78,
-                history: [
-                    { date: '2024-01-05', value: 30 },
-                    { date: '2024-01-10', value: 80 },
-                    { date: '2024-01-15', value: 40 },
-                    { date: '2024-01-20', value: 85 },
-                ]
-            },
-            {
-                id: '3',
-                name: 'Ficus Lyrata',
-                scientificName: 'Ficus lyrata',
-                location: 'Varanda',
-                waterFrequencyDays: 10,
-                lastWatered: new Date(Date.now() - 8 * 86400000).toISOString(),
-                nextWatering: new Date(Date.now() + 2 * 86400000).toISOString(),
-                lightLevel: 'High',
-                humidity: 70,
-                health: 98,
-                history: [
-                    { date: '2024-01-01', value: 50 },
-                    { date: '2024-01-11', value: 90 },
-                    { date: '2024-01-21', value: 65 },
-                ]
             }
         ]
     })
+
 }));
