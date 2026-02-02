@@ -6,6 +6,7 @@ import { Plus, Droplets, Calendar, Leaf, LogOut, Trash2, Skull } from 'lucide-re
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAppStore, Plant } from '@/lib/store';
 import { DemoTimer } from '@/components/DemoTimer';
 
@@ -15,6 +16,18 @@ export default function DashboardClient() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newPlantName, setNewPlantName] = useState('');
     const [newPlantDays, setNewPlantDays] = useState('');
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        variant?: 'danger' | 'warning';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     useEffect(() => {
         // Protected Route Logic
@@ -34,7 +47,13 @@ export default function DashboardClient() {
                 if (demoStartTime && Date.now() - demoStartTime > 60000) {
                     logout();
                     router.push('/');
-                    alert('O tempo da demo acabou! (Limite de 1 minuto)');
+                    setConfirmDialog({
+                        isOpen: true,
+                        title: 'Demo Expirada',
+                        message: 'O tempo da demo acabou! (Limite de 1 minuto)',
+                        onConfirm: () => { },
+                        variant: 'warning'
+                    });
                     clearInterval(persistenceCheck);
                 }
             }, 1000);
@@ -46,7 +65,13 @@ export default function DashboardClient() {
         e.preventDefault();
 
         if (isDemo && plants.length >= 2) {
-            alert("No modo Demo, você só pode ter 2 plantas.");
+            setConfirmDialog({
+                isOpen: true,
+                title: 'Limite Atingido',
+                message: 'No modo Demo, você só pode ter 2 plantas.',
+                onConfirm: () => { },
+                variant: 'warning'
+            });
             setIsAddModalOpen(false);
             return;
         }
@@ -176,9 +201,13 @@ export default function DashboardClient() {
                                                     className="text-red-400 hover:text-red-500 hover:bg-red-50"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (confirm('Tem certeza que deseja remover esta planta do histórico?')) {
-                                                            deletePlant(plant.id);
-                                                        }
+                                                        setConfirmDialog({
+                                                            isOpen: true,
+                                                            title: 'Remover Planta',
+                                                            message: 'Tem certeza que deseja remover esta planta do histórico? Esta ação não pode ser desfeita.',
+                                                            onConfirm: () => deletePlant(plant.id),
+                                                            variant: 'danger'
+                                                        });
                                                     }}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -186,20 +215,24 @@ export default function DashboardClient() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="flex gap-1">
+                                                <div className="flex gap-2">
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600"
-                                                        title="Marcar como morta"
+                                                        className="text-slate-500 hover:text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 px-3"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (confirm('Tem certeza? Isso não pode ser desfeito.')) {
-                                                                markPlantDead(plant.id);
-                                                            }
+                                                            setConfirmDialog({
+                                                                isOpen: true,
+                                                                title: 'Marcar como Morta',
+                                                                message: `Tem certeza que deseja marcar "${plant.name}" como morta? Esta ação não pode ser desfeita.`,
+                                                                onConfirm: () => markPlantDead(plant.id),
+                                                                variant: 'danger'
+                                                            });
                                                         }}
                                                     >
                                                         <Skull className="h-4 w-4" />
+                                                        <span className="text-xs">Morreu</span>
                                                     </Button>
                                                 </div>
                                                 <Button
@@ -251,6 +284,15 @@ export default function DashboardClient() {
                     </Button>
                 </form>
             </Modal>
+
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                variant={confirmDialog.variant}
+            />
         </div>
     );
 }
